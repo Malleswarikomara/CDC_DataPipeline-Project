@@ -1,0 +1,6 @@
+order_id,customer_id,order_status,total_amount,currency,shipping_address,item_count,created_at,updated_at,last_event_id,last_sequence,is_deleted,deleted_at,record_version,record_hash
+ORD-101,CUST-001,DELIVERED,120.5,USD,"123 Market St, San Francisco, CA",2,2026-10-30T10:01:00Z,2026-10-30T10:15:00Z,evt_order_101_4,4,0,,4,3ccab60c2f6420d60f69d7942374e5f0941db9515c6594211f2d3ba9bfbfe728
+ORD-102,CUST-002,PENDING,49.99,USD,"456 Broadway, New York, NY",1,2026-10-30T10:02:00Z,2026-10-30T10:07:00Z,evt_order_102_2,2,1,2026-10-30T10:07:00Z,2,35358d907de4988bfe1b6653cf5679053a81570babd3541482b05cb4a1cf1cbe
+ORD-103,CUST-003,SHIPPED,250.0,USD,"789 Pine St, Seattle, WA",5,2026-10-30T10:03:00Z,2026-10-30T10:20:00Z,evt_order_103_3,3,0,,2,09bcd18bc97a7d10d4063cd9d47e231836c487faa86c73a1e7870df07d5eb5f2
+ORD-104,CUST-004,CONFIRMED,325.0,EUR,"12 Rue de Rivoli, Paris, France",3,2026-10-30T10:04:00Z,2026-10-30T10:12:00Z,evt_order_104_2,2,0,,2,836b7bc90339a52f6316c3b9fd92c2009849acf4a3057433f7e5d7ed1a67396e
+ORD-EDGE-01,CUST-EDGE,DELIVERED,100.0,USD,Edge Test St,1,2026-10-30T11:01:00Z,2026-10-30T11:01:00Z,edge_valid_deliv_1,1,0,,1,aa1bf391efb83a642e4059920ba294950ecd0ec2369558a887f9b36f3329760b
