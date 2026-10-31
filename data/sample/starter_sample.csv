@@ -1,0 +1,13 @@
+event_id,event_type,event_timestamp,source_sequence,order_id,customer_id,order_status,total_amount,currency,shipping_address,item_count
+evt_order_101_1,INSERT,2026-10-30T10:01:00Z,1,ORD-101,CUST-001,PENDING,120.5,USD,"123 Market St, San Francisco, CA",2
+evt_order_101_2,UPDATE,2026-10-30T10:05:00Z,2,ORD-101,CUST-001,CONFIRMED,120.5,USD,"123 Market St, San Francisco, CA",2
+evt_order_101_3,UPDATE,2026-10-30T10:10:00Z,3,ORD-101,CUST-001,SHIPPED,120.5,USD,"123 Market St, San Francisco, CA",2
+evt_order_101_4,UPDATE,2026-10-30T10:15:00Z,4,ORD-101,CUST-001,DELIVERED,120.5,USD,"123 Market St, San Francisco, CA",2
+evt_order_102_1,INSERT,2026-10-30T10:02:00Z,1,ORD-102,CUST-002,PENDING,49.99,USD,"456 Broadway, New York, NY",1
+evt_order_102_2,DELETE,2026-10-30T10:07:00Z,2,ORD-102,CUST-002,CANCELLED,49.99,USD,"456 Broadway, New York, NY",1
+evt_order_103_1,INSERT,2026-10-30T10:03:00Z,1,ORD-103,CUST-003,PENDING,250.0,USD,"789 Pine St, Seattle, WA",5
+evt_order_103_3,UPDATE,2026-10-30T10:20:00Z,3,ORD-103,CUST-003,SHIPPED,250.0,USD,"789 Pine St, Seattle, WA",5
+evt_order_103_2,UPDATE,2026-10-30T10:10:00Z,2,ORD-103,CUST-003,CONFIRMED,250.0,USD,"789 Pine St, Seattle, WA",5
+evt_order_101_1,INSERT,2026-10-30T10:01:00Z,1,ORD-101,CUST-001,PENDING,120.5,USD,"123 Market St, San Francisco, CA",2
+evt_order_104_1,INSERT,2026-10-30T10:04:00Z,1,ORD-104,CUST-004,PENDING,310.0,EUR,"10 Rue de Rivoli, Paris, France",3
+evt_order_104_2,UPDATE,2026-10-30T10:12:00Z,2,ORD-104,CUST-004,CONFIRMED,325.0,EUR,"12 Rue de Rivoli, Paris, France",3
