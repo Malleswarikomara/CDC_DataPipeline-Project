@@ -24,5 +24,6 @@ data/*-shm
 .vscode/
 .idea/
 
-# Large generated test datasets
+# Large generated test datasets (> 1 MB, generated on demand)
+data/large/cdc_events_10000.*
 data/large/cdc_events_100000.*
