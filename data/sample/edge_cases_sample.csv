@@ -1,0 +1,10 @@
+event_id,event_type,event_timestamp,source_sequence,order_id,customer_id,order_status,total_amount,currency,shipping_address,item_count,malicious_extra_field
+edge_valid_deliv_1,INSERT,2026-10-30T11:01:00Z,1,ORD-EDGE-01,CUST-EDGE,DELIVERED,100.0,USD,Edge Test St,1,
+edge_invalid_transition,UPDATE,2026-10-30T11:02:00Z,2,ORD-EDGE-01,CUST-EDGE,PENDING,100.0,USD,Edge Test St,1,
+edge_missing_field,INSERT,2026-10-30T11:03:00Z,1,ORD-EDGE-02,,PENDING,50.0,USD,Missing Field St,1,
+edge_negative_amount,INSERT,2026-10-30T11:04:00Z,1,ORD-EDGE-03,CUST-EDGE,PENDING,-89.99,USD,Negative St,1,
+edge_bad_timestamp,INSERT,not-a-valid-timestamp-string,1,ORD-EDGE-04,CUST-EDGE,PENDING,25.0,USD,Timestamp St,1,
+edge_bad_sequence,INSERT,2026-10-30T11:05:00Z,-1,ORD-EDGE-05,CUST-EDGE,PENDING,45.0,USD,Sequence St,1,
+edge_bad_event_type,UPSERT,2026-10-30T11:06:00Z,1,ORD-EDGE-06,CUST-EDGE,PENDING,75.0,USD,Event Type St,1,
+edge_unexpected_column,INSERT,2026-10-30T11:07:00Z,1,ORD-EDGE-07,CUST-EDGE,PENDING,90.0,USD,Drift St,1,hacker_payload
+edge_delete_ghost,DELETE,2026-10-30T11:08:00Z,1,ORD-NONEXISTENT-999,CUST-UNKNOWN,CANCELLED,0.0,USD,Ghost St,0,
