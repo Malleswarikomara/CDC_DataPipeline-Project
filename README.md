@@ -283,7 +283,8 @@ In full compliance with **Guideline 03 (USE LLMs TRANSPARENTLY)** and **FAQ Item
 │   │   ├── edge_cases_sample.json   # 8 negative edge cases for quarantine verification
 │   │   └── edge_cases_sample.csv    # Edge cases in CSV format
 │   ├── large/
-│   │   └── cdc_events_10000.jsonl   # 10,000-record benchmark dataset
+│   │   ├── cdc_events_1000.jsonl    # 1,000-record benchmark preview (GitHub viewable)
+│   │   └── README.md                # Guide to scale up to 10k/100k events on demand
 │   └── output/
 │       ├── current_state.csv        # Authoritative state export
 │       ├── event_history.csv        # Audit trail export
