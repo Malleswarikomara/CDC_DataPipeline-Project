@@ -1,0 +1,3 @@
+# Change Data Capture (CDC) Pipeline Dependencies
+# Runtime uses Python 3.10+ Standard Library (sqlite3, dataclasses, json, csv, etc.) for zero-dependency reliability and portability.
+pytest>=8.0.0
