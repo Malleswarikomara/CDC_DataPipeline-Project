@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases & temporary artifacts
+*.db
+*.db-wal
+*.db-shm
+data/*.db
+data/*-wal
+data/*-shm
+
+# Windows helper batch scripts (local convenience)
+*.bat
+*.cmd
+
+# IDE files
+.vscode/
+.idea/
+
+# Large generated test datasets
+data/large/cdc_events_100000.*
