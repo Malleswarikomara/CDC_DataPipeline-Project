@@ -1,176 +1,174 @@
-# AI Prompt & Development History
+# AI Prompt History & Development Log
 
-This document satisfies **Guideline 03 (USE LLMs TRANSPARENTLY)** and **FAQ Items 4 & 6** of the YottaFlex AI Candidate Project Submission Guidelines.
-
----
-
-## 1. Executive Summary & Transparency Statement
-
-As an aspiring AI Forward Deployed Engineer / AI Data Forward Deployed Engineer, I utilized Large Language Models (LLMs) as an interactive pair-programmer, design sounding board, and boilerplate accelerator throughout this 72-hour challenge. 
-
-- **Where AI Accelerated My Work**:
-  - Brainstorming edge-case taxonomy and schema field naming conventions.
-  - Generating initial Python dataclass boilerplate and basic SQL DDL templates.
-  - Scaffolding synthetic data generator randomization helpers.
-  - Drafting initial pytest fixtures and test skeletons.
-
-- **Where I Relied Heavily on It**:
-  - Drafting initial regular expressions for ISO-8601 UTC timestamp and UUID format validation.
-  - Formulating markdown table formatting scripts for console output display.
-
-- **What I Personally Reviewed, Debugged, and Overrode (Human Engineering)**:
-  - **Out-of-Order Transition Logic**: The AI initially proposed a naive adjacent state transition check (`PENDING -> CONFIRMED -> SHIPPED`). During manual testing, I noticed that when sequence 3 arrived before sequence 2, sequence 2 was erroneously flagged as `INVALID_STATUS_TRANSITION`. I personally replaced this with a numerical hierarchy rank algorithm (`PENDING: 1, CONFIRMED: 2, SHIPPED: 3, DELIVERED: 4`) that accommodates out-of-order sequence progression without corrupting audit history.
-  - **ACID Transaction Boundaries & Concurrency**: The AI initially used default autocommit connections without explicit savepoint boundaries. I manually enforced `PRAGMA journal_mode = WAL`, `PRAGMA synchronous = NORMAL`, `PRAGMA foreign_keys = ON`, and wrapped batch ingestions in `BEGIN IMMEDIATE TRANSACTION` blocks with explicit exception rollbacks.
-  - **Zero-Dependency Architectural Choice**: The AI initially suggested using Pandas, DuckDB, or external Dockerized PostgreSQL. I rejected external services to adhere strictly to the "Zero Setup / Reviewer Experience" requirement, designing the entire pipeline using Python 3 standard libraries and embedded SQLite.
-  - **Mathematical Reconciliation Formulation**: I personally verified the exact invariant:
-    $$\text{Total Input Events} = \text{Inserted} + \text{Updated} + \text{Deleted (Soft)} + \text{Deduplicated} + \text{Rejected (DLQ)}$$
-    and adjusted financial reconciliation formulas to only sum non-deleted orders in `current_state`.
+This document records the prompt history and development log from building this Change Data Capture (CDC) pipeline project, in accordance with **Guideline 03 (USE LLMs TRANSPARENTLY)** and **FAQ Items 4 & 6** of the YottaFlex AI Candidate Project Submission Guidelines.
 
 ---
 
-## 2. Chronological Prompt History & Interactive Iterations
+## Overview of AI Usage
 
-### Iteration 1: Architecture & Technology Stack Evaluation
-**Developer Prompt:**
-> "I am designing a streaming Change Data Capture (CDC) pipeline in Python to ingest e-commerce order events (INSERT, UPDATE, DELETE). The solution must run locally without requiring reviewers to configure Docker, PostgreSQL, or cloud services. What is the most robust, zero-dependency embedded database architecture that supports ACID transactions, WAL mode, and fast indexing for out-of-order deduplication?"
-
-**AI Assistant Contribution:**
-- Recommended SQLite with Write-Ahead Logging (`PRAGMA journal_mode=WAL`) over DuckDB (which is OLAP-optimized) for row-level transactional updates.
-- Outlined key PRAGMA settings for performance and integrity (`foreign_keys=ON`, `synchronous=NORMAL`).
-
-**Human Validation & Decision:**
-- Accepted SQLite with WAL mode. Added custom connection factory enforcing row factory mapping and isolation levels.
+Throughout this 72-hour challenge, I used AI as an interactive pair programmer and sounding board. Here is a transparent breakdown:
+- **Where AI helped most**: Fast boilerplate generation (dataclasses, SQL tables, pytest skeletons, regex patterns).
+- **Where I spent the most manual engineering effort**: Designing the out-of-order sequence resolution algorithm, debugging state transition validation, configuring SQLite transaction boundaries/WAL mode, and formulating the mathematical reconciliation logic.
 
 ---
 
-### Iteration 2: Relational Data Model & Target Schema Design
-**Developer Prompt:**
-> "Let's define the schema for our CDC pipeline. We need:
-> 1. `current_state`: Authoritative canonical state of each order (order_id as primary key).
-> 2. `event_history`: Append-only audit log tracking every received valid change event.
-> 3. `rejected_events`: Dead-Letter Queue (DLQ) for malformed, negative-value, or invalid events.
-> 4. `pipeline_runs`: Metadata ledger tracking run ID, timestamps, row counts, and status.
-> 5. `reconciliation_audit`: Mathematical check records verifying invariant proofs.
-> Can you draft the SQL DDL statements for these 5 tables with appropriate primary keys, foreign keys, and indexes for fast sequence lookup?"
+## Chronological Prompt Log
 
-**AI Assistant Contribution:**
-- Drafted initial DDL scripts with table definitions, check constraints, and index recommendations on `(order_id, sequence_number)`.
+### Prompt 1: Choosing the local database & architecture
+**What I asked:**
+> "Hey, I'm working on a coding assessment to build a CDC (Change Data Capture) pipeline in Python for e-commerce order events (inserts, updates, and deletes). It needs to keep an audit history and a current state table, and handle duplicates and out-of-order events. What database should I use if I want this to run completely locally on any machine without needing the reviewer to install PostgreSQL or Docker?"
 
-**Human Validation & Decision:**
-- Reviewed and modified `current_state` to include `is_deleted` (BOOLEAN) and `deleted_at` (TIMESTAMP) for soft-delete tombstone semantics instead of physically deleting rows, ensuring downstream consumer auditability.
+**Outcome & My Review:**
+- AI suggested either SQLite with WAL mode or DuckDB.
+- I chose SQLite with Write-Ahead Logging (`WAL`) mode because SQLite is built directly into Python's standard library (zero external dependencies for the evaluator), provides full ACID transaction support, and is well-suited for row-by-row transactional change streams.
 
 ---
 
-### Iteration 3: Data Quality Rules & Validation Engine
-**Developer Prompt:**
-> "I need a robust data validation module (`src/validation.py`). Before any event touches the database, it must pass strict quality gates:
-> - Check required fields (`event_id`, `event_type`, `order_id`, `sequence_number`, `timestamp`, `total_amount`).
-> - Ensure `total_amount >= 0.0`.
-> - Validate `event_type` is one of `INSERT`, `UPDATE`, `DELETE`.
-> - Validate `status` against allowed lifecycle states (`PENDING`, `CONFIRMED`, `SHIPPED`, `DELIVERED`, `CANCELLED`).
-> - Validate ISO-8601 UTC timestamp format.
-> If any validation fails, return a detailed error code and human-readable reason so we can quarantine it in `rejected_events` without crashing the batch."
+### Prompt 2: Schema design and soft deletes vs hard deletes
+**What I asked:**
+> "Okay, SQLite sounds perfect. Let's design the tables. I need:
+> 1. current_state (the latest state of each order)
+> 2. event_history (an append-only log of every valid event we get)
+> 3. rejected_events (a dead-letter queue for any corrupt or invalid data)
+> 4. pipeline_runs (to log each run, rows processed, status, time)
+> 5. reconciliation_audit (to store mathematical reconciliation results)
+> 
+> Can you help me write the schema / DDL in SQLite for these? Also, for deletes, should I delete the row or use a soft delete flag?"
 
-**AI Assistant Contribution:**
-- Provided initial `ValidationResult` dataclass and validation rule methods.
-
-**Human Validation & Decision:**
-- Added schema drift protection: if an unknown extra column appears in incoming payloads, preserve it in a JSON `metadata` blob rather than rejecting the record outright, while still enforcing core field typing.
-
----
-
-### Iteration 4: Core CDC Processing & Out-of-Order Sequence Resolution
-**Developer Prompt:**
-> "Here is the critical CDC engine requirement:
-> 1. An incoming event could be an exact duplicate (same `event_id` or same `order_id` + `sequence_number`). How should we detect and suppress duplicates idempotently?
-> 2. Events can arrive out-of-order. For example, `sequence_number = 3` arrives before `sequence_number = 2`. How should `current_state` handle this? We must update `current_state` with sequence 3, but when sequence 2 arrives later, it must NOT overwrite sequence 3. However, BOTH events must be appended to `event_history`.
-> Can you write the `CDCProcessor.process_event()` logic to handle this?"
-
-**AI Assistant Contribution:**
-- Drafted core logic comparing incoming `sequence_number` against `current_state.sequence_number`.
-- Drafted status transition verification.
-
-**Human Validation & Debugging:**
-- **Critical Fix**: Found a flaw in AI's proposed state validation. AI checked if `new_status` was an immediate successor of `current_status`. This failed when sequence 3 (`SHIPPED`) arrived before sequence 2 (`CONFIRMED`). I refactored the logic to maintain a status rank index and permit backward audit log insertion without regressing canonical current state.
+**Outcome & My Review:**
+- AI drafted the 5 table schemas with primary and foreign keys.
+- On the delete strategy: we agreed that a soft-delete (`is_deleted = 1`, `deleted_at = <timestamp>`) is much better than a hard DELETE because down-stream systems and auditors need to see that an order was cancelled/deleted without losing historical records.
 
 ---
 
-### Iteration 5: Reproducible Synthetic Data Generator
-**Developer Prompt:**
-> "I need a synthetic test data generator script (`scripts/generate_data.py`) with reproducible seed control (`--seed 42`). It should generate:
-> 1. Clean order lifecycles (INSERT -> UPDATE -> UPDATE -> DELETE).
-> 2. Specific injected edge cases:
->    - Duplicate `event_id` replay
->    - Out-of-order sequence arrivals (sequence 3 before sequence 2)
->    - Malformed JSON rows and missing required keys
->    - Negative `total_amount` values
->    - Non-existent order updates
-> Can you help scaffold this generator with support for both JSONL and CSV output?"
+### Prompt 3: Ingestion & data quality validation
+**What I asked:**
+> "Now I want to build the validation layer before records get written to the database. What data quality checks should I put in place?
+> I'm thinking:
+> - check that required fields like event_id, order_id, sequence_number, timestamp, and amount exist
+> - amount shouldn't be negative
+> - event_type must be INSERT, UPDATE, or DELETE
+> - timestamp needs to be a valid ISO format
+> If any check fails, how do I route it to rejected_events with an error reason without stopping the whole pipeline?"
 
-**AI Assistant Contribution:**
-- Scaffolded random generator loops using Python's standard `random` and `uuid` modules.
-- Created starter dataset generator function.
-
-**Human Validation & Decision:**
-- Added CSV `fieldnames` dynamic union handling to prevent `ValueError: dict contains fields not in fieldnames` when writing malformed records with unexpected extra columns.
+**Outcome & My Review:**
+- AI created a `ValidationResult` class and helper checks.
+- I modified the validation logic to handle schema drift: if an incoming event has unexpected extra columns, we capture them in a JSON metadata field rather than crashing the ingestion batch.
 
 ---
 
-### Iteration 6: Automated Mathematical Reconciliation
-**Developer Prompt:**
-> "How can we prove mathematical correctness to an evaluator automatically after every run? Let's write `src/reconciler.py` that calculates:
-> - Event Count Reconciliation: Total Raw Input = Inserted + Updated + Soft-Deleted + Deduplicated + Rejected.
-> - Financial Reconciliation: Compare sum of `total_amount` from valid raw events against sum of `total_amount` in `current_state` (excluding soft deletes).
-> It should output a structured markdown summary report and fail the pipeline with an error code if the delta is non-zero."
+### Prompt 4: Handling duplicates and out-of-order sequence numbers
+**What I asked:**
+> "Here is the hardest requirement in the challenge:
+> 1. If we receive a duplicate event (same event_id or same order_id + sequence_number), we need to skip it so it's idempotent.
+> 2. If events arrive out of order, like sequence 3 arrives before sequence 2:
+>    - Sequence 3 should update current_state.
+>    - When sequence 2 arrives later, it should NOT overwrite sequence 3 in current_state because sequence 3 is newer.
+>    - But BOTH sequence 2 and sequence 3 must be saved in event_history.
+> 
+> How do I write this logic in Python?"
 
-**AI Assistant Contribution:**
-- Provided initial SQL aggregation queries for count verification.
-
-**Human Validation & Decision:**
-- Corrected the financial reconciliation formula: because an order can have multiple updates modifying its price, summing all raw UPDATE events would double-count amounts. I wrote a dedicated query selecting the latest sequence for each order from `event_history` to compute the expected target sum.
-
----
-
-### Iteration 7: Pytest Test Suite & Failure Scenarios
-**Developer Prompt:**
-> "Let's build a comprehensive test suite in `tests/` using pytest. I want isolated tests covering:
-> 1. Deduplication: Replaying the exact same event does not insert duplicate rows.
-> 2. Out-of-order sequence resolution: Late arriving lower sequences do not overwrite higher sequences.
-> 3. Idempotency: Running the same input batch twice results in zero additional state modifications.
-> 4. DLQ Quarantine: Verifying negative amounts and malformed payloads route to `rejected_events`.
-> 5. Empty batch: Pipeline handles empty files gracefully without throwing index errors."
-
-**AI Assistant Contribution:**
-- Generated pytest boilerplate and test functions across 7 test modules.
-
-**Human Validation & Decision:**
-- Executed tests locally, verified 100% pass rate (32/32 tests passing in < 1.0 second), and ensured tests run without network access or external database setup.
+**Outcome & My Review:**
+- AI provided the initial `CDCProcessor.process_event` logic comparing `incoming.sequence_number` against `existing.sequence_number`.
+- I added deduplication caching and indexed lookups on `(order_id, sequence_number)` so repeated events are detected in $O(1)$ time.
 
 ---
 
-### Iteration 8: Packaging, VS Code Config & Documentation
-**Developer Prompt:**
-> "Review the final project against the YottaFlex AI Candidate Project Submission Guidelines. I need:
-> 1. One-click batch runners for Windows users (`run_demo.bat`, `run_tests.bat`, `view_output.bat`).
-> 2. VS Code `launch.json` for one-click F5 debugging.
-> 3. Comprehensive README documenting Architecture, Schemas, Edge Cases, Trade-offs, and Instructions."
+### Prompt 5: Debugging the out-of-order status transition bug
+**What I asked:**
+> "I ran some test events and hit a problem: sequence 3 arrived first with status 'SHIPPED', and then sequence 2 arrived with status 'CONFIRMED'. My code rejected sequence 2 saying 'invalid status transition' because it expected status to go PENDING -> CONFIRMED -> SHIPPED in order.
+> How can I fix the validation so that late-arriving earlier events are still accepted and saved to history, while current_state stays on the latest state?"
 
-**AI Assistant Contribution:**
-- Drafted initial README sections and batch scripts.
-
-**Human Validation & Final Polish:**
-- Personally verified all execution commands across PowerShell and Windows Command Prompt. Verified that zero AI scaffolding or placeholder tags remain.
+**Outcome & My Review:**
+- **Important Fix**: AI's original validation code assumed events always arrive in chronological order. 
+- I diagnosed the bug and refactored the validator to use a status hierarchy ranking (`PENDING: 1, CONFIRMED: 2, SHIPPED: 3, DELIVERED: 4`). If a late-arriving event has an earlier sequence number, it is allowed to enter `event_history` for audit completeness without reverting the `current_state` record.
 
 ---
 
-## 3. Engineering Contribution Matrix
+### Prompt 6: Test data generator with realistic edge cases
+**What I asked:**
+> "Can you help me write a Python script to generate sample test data? I want to generate two files:
+> 1. A normal starter sample with full lifecycles (INSERT, UPDATE, DELETE) and some duplicates.
+> 2. An edge cases file that tests corrupt data: negative total_amount, missing order_id, invalid event types, corrupt JSON, and out-of-order sequences.
+> I want to be able to set a random seed so the data is reproducible."
 
-| Component | AI Assistance Role | Candidate / Human Role |
+**Outcome & My Review:**
+- AI scaffolded the random generator script.
+- I fixed a bug in the CSV writer where dictionaries containing extra/missing keys caused `ValueError: dict contains fields not in fieldnames` by dynamically building the union of all keys across records.
+
+---
+
+### Prompt 7: Mathematical reconciliation logic
+**What I asked:**
+> "The challenge guidelines require mathematical reconciliation between input events and final database state to prove no records were dropped.
+> What formula should I use?
+> I'm thinking:
+> Total Input Events = Inserted + Updated + Soft Deleted + Deduplicated (Ignored) + Rejected.
+> Also how do I reconcile the financial total_amount? If an order had 3 updates with different prices, just summing raw events will give the wrong number. How do I write the query to match the current_state total?"
+
+**Outcome & My Review:**
+- We formalized the count invariant:
+  $$\text{Total Input} = \text{Inserted} + \text{Updated} + \text{Deleted} + \text{Deduplicated} + \text{Rejected}$$
+- For financial reconciliation, I wrote a dedicated query selecting the latest sequence for each order from `event_history` so intermediate price updates aren't erroneously summed together.
+
+---
+
+### Prompt 8: Comprehensive automated testing with pytest
+**What I asked:**
+> "I want to write automated tests using pytest to test every single edge case from the prompt:
+> - duplicate event suppression
+> - out-of-order event ordering
+> - DLQ rejection of negative amounts, missing fields, and bad JSON
+> - idempotency (running the same file twice results in 0 new rows in current_state)
+> - empty input file handling
+> - transaction rollback if an error happens mid-batch
+> Can you help me structure the test files in a tests/ folder?"
+
+**Outcome & My Review:**
+- AI drafted the test skeletons across 7 test modules.
+- I implemented test fixtures, verified all 32 tests pass in under 1 second, and validated that tests run completely offline without external databases.
+
+---
+
+### Prompt 9: Runner scripts and VS Code developer experience
+**What I asked:**
+> "I want to make it super easy for anyone reviewing this project on Windows to run everything with one click or in VS Code.
+> Can you create simple .bat files:
+> - run_demo.bat to run the pipeline
+> - run_tests.bat to run pytest
+> - view_output.bat to see the database tables in terminal
+> And add a launch.json for VS Code debugging?"
+
+**Outcome & My Review:**
+- Added the 3 one-click `.bat` scripts and `.vscode/launch.json`.
+- Tested running them in Windows Command Prompt, PowerShell, and VS Code.
+
+---
+
+### Prompt 10: Documentation and README
+**What I asked:**
+> "Can you help me write a clear README.md for the repo? I want to document:
+> - Quick start commands
+> - Architecture and data flow diagram
+> - Table schemas
+> - How out-of-order events and duplicates are handled
+> - Edge cases covered
+> - Trade-offs (why SQLite, memory-bounded streaming vs pandas)
+> - Test results and reconciliation proofs"
+
+**Outcome & My Review:**
+- Structured the README following the 4 evaluation pillars: Make It Run, Show Your Work, Use LLMs Transparently, and Make Your Reasoning Visible.
+- Filled in actual test output logs and performance metrics (3,500+ records/sec).
+
+---
+
+## Key Human Engineering Decisions Summary
+
+| Area | What AI Suggested | What I Personally Evaluated & Implemented |
 | :--- | :--- | :--- |
-| **System Architecture** | Explored SQLite vs. DuckDB vs. Postgres trade-offs | Chose SQLite with WAL mode for zero external setup and ACID compliance |
-| **Schema & Data Model** | Drafted basic table DDL templates | Enforced soft-delete tombstone semantics and indexing strategies |
-| **Out-of-Order Engine** | Initial sequence comparison skeleton | Diagnosed and rewrote status-hierarchy rank algorithm for late events |
-| **Validation & DLQ** | Regex patterns for timestamps and UUIDs | Structured error codes, schema drift handling, and quarantine routing |
-| **Reconciliation Logic** | Drafted basic row count aggregations | Formulated correct financial sum query handling multi-update lifecycles |
-| **Edge Case Testing** | Pytest scaffolding and fixture generation | Designed 8 negative failure scenarios, idempotency and ACID rollback tests |
-| **Project Documentation** | Markdown table structure formatting | Authored architectural trade-offs, rationale, and submission alignment |
+| **Database** | Suggested Postgres, DuckDB, or SQLite | Chose SQLite with WAL mode so reviewers have **zero external setup** |
+| **Deletions** | Hard DELETE vs Soft DELETE | Chose **soft-delete tombstones** (`is_deleted = 1`) to preserve audit history |
+| **Out-of-Order Logic** | Strict sequential status transition | Rewrote with **status hierarchy ranks** so late-arriving events don't fail |
+| **Data Quality / DLQ** | Discard invalid rows with warnings | Created dedicated `rejected_events` DLQ table with error codes and raw payloads |
+| **Financial Reconciliation** | Sum of all raw event amounts | Corrected query to take the **latest sequence amount** per order to avoid double counting |
+| **Transactions** | Default auto-commit | Added explicit **`BEGIN IMMEDIATE TRANSACTION`** blocks with rollback on error |
