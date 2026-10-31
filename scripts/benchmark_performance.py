@@ -129,7 +129,8 @@ def run_benchmark(file_path: Path, batch_sizes=(1000, 5000)):
 
 def main():
     parser = argparse.ArgumentParser(description="CDC Performance Benchmark")
-    parser.add_argument("--file", type=str, default="data/large/cdc_events_10000.jsonl")
+    default_target = "data/large/cdc_events_1000.jsonl" if Path("data/large/cdc_events_1000.jsonl").exists() else "data/large/cdc_events_10000.jsonl"
+    parser.add_argument("--file", type=str, default=default_target)
     args = parser.parse_args()
 
     target = Path(args.file)
@@ -137,7 +138,8 @@ def main():
         print(f"Error: Target file '{args.file}' not found. Run scripts/generate_data.py first.")
         return
 
-    run_benchmark(target, batch_sizes=[1000, 2500])
+    batch_sizes = [500, 1000] if "1000." in target.name else [1000, 2500]
+    run_benchmark(target, batch_sizes=batch_sizes)
 
 
 if __name__ == "__main__":
