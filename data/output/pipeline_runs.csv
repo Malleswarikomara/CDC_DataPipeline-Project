@@ -1,0 +1,4 @@
+run_id,start_time,end_time,status,source_file,records_read,records_accepted,records_rejected,records_duplicate,inserts_applied,updates_applied,deletes_applied,out_of_order_count,duration_seconds,error_message
+run_20261031_150921_825c53,2026-10-31T15:09:21.327613+00:00,2026-10-31T15:09:21.430466+00:00,SUCCESS,starter_sample.json,12,11,0,1,4,5,1,1,0.1029,
+run_20261031_150921_577d44,2026-10-31T15:09:21.477351+00:00,2026-10-31T15:09:21.692230+00:00,PARTIAL_SUCCESS,edge_cases_sample.json,9,1,8,0,1,0,0,0,0.2149,
+run_20261031_150921_a67aa7,2026-10-31T15:09:21.736962+00:00,2026-10-31T15:09:21.839417+00:00,SUCCESS,starter_sample.json,12,0,0,12,0,0,0,0,0.1025,
