@@ -1,10 +1,4 @@
-# AI Prompt History
-
-This document records the prompt history and notes from building this Change Data Capture (CDC) pipeline, per **Guideline 03 (USE LLMs TRANSPARENTLY)** of the submission guidelines.
-
----
-
-## Chronological Prompts
+# Prompt History
 
 ### Prompt 1: Database selection
 **Prompt:**
